@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apple Podcast Transcript Viewer</title>
   <link rel="icon" type="image/png" href="/projects/podcasts/favicons/favicon-96x96.png" sizes="96x96" />
@@ -23,9 +24,9 @@
       overflow: hidden;
       padding: 20px;
       border-radius: 8px;
-      margin: 15px 0;
+      margin: 15px 10px;
       background-color: white;
-      width: 800px;
+      max-width: 800px;
 
       cursor: pointer;
 
@@ -84,7 +85,8 @@
       align-items: center;
     }
     .explanation {
-      width: 650px;
+      max-width: 650px;
+      margin: 5px;
       text-align: center;
       background-color: white;
       padding: 40px;
@@ -98,7 +100,7 @@
     }
     .top .explanation {
       margin-top: 10px;
-      padding: 20px 0;
+      padding: 20px;
       border-radius: 10px;
     }
     .explanation h1 {
@@ -195,6 +197,15 @@
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
   
   <script type="module">
+    // Handle mobile apps
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      document.querySelector('.explanation').innerHTML = `
+        <h1>Apple Podcast Transcript Viewer</h1>
+        <p>
+          This only supports MacOS, so try visiting this website from your laptop browser.
+        </p>`;
+    }
+
     const dropZone = document.body;
     const podcasts = document.getElementById('podcasts');
 
