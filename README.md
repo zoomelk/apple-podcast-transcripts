@@ -12,7 +12,7 @@ Once you drag and drop your files you can browse all of the episodes with transc
 
 Clicking on any of them will pull up the full transcript, which you can copy and paste to whatever tool you want to handle the file in.
 
-<img width="1368" alt="Screenshot 2025-01-30 at 11 31 40 PM" src="https://github.com/user-attachments/assets/96671490-2f88-4001-b5fa-6e43a4effaab" />
+<img width="1144" alt="Screenshot 2025-01-31 at 12 08 35 AM" src="https://github.com/user-attachments/assets/0985f961-b661-4679-b6db-026539fa7062" />
 
 ## Where Does This Come From?
 
