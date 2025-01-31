@@ -1,6 +1,6 @@
-# Apple Podcast Transcript Viewer
+# <img src="/favicons/favicon-96x96.png?raw=true" height="32px" alt=""/> Apple Podcast Transcript Viewer
 
-This is a simple UI tool for viewing full transcripts in a way that you can actually copy them. No software needed, should work with any Mac with the Podcasts app just by visiting the website, https://alexbeals.com/projects/podcasts/. All you have to do is follow the instructions and drag-and-drop your podcasts folder.
+This is a simple UI tool for viewing full transcripts in a way that you can actually copy them. No software needed and it should work with any Mac with the Podcasts app just by visiting the website, https://alexbeals.com/projects/podcasts/. All you have to do is follow the instructions and drag-and-drop your podcasts folder.
 
 This all works locally without uploading anything, which you can confirm by disabling the Internet after the website is loaded. 
 
