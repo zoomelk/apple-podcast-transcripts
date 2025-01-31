@@ -183,7 +183,7 @@
       <div><span class="indicator">3</span>Drag and drop all the contents of that folder anywhere on this window.</div>
     </div>
     <p class="note">
-      NOTE: All information is only locally processed and never leaves your computer.
+      NOTE: All files are locally processed in your browser and never leave your computer.
     </p>
   </div>
   <div id="podcasts">
@@ -194,9 +194,14 @@
   </div>
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
   
-  <script>
+  <script type="module">
     const dropZone = document.body;
     const podcasts = document.getElementById('podcasts');
+
+    // Initialize it now so that if you go offline the webworker is set up
+    const SQL = await initSqlJs({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
+    });
     
     dropZone.addEventListener('dragover', (event) => {
       event.preventDefault();
@@ -294,8 +299,6 @@
 
         podcasts.appendChild(podcastDiv);
       }
-
-      console.log(transcripts);
     });
 
     async function traverseFileTree(entry) {
@@ -331,9 +334,6 @@
     }
 
     async function extractPodcastInfo(file) {
-      const SQL = await initSqlJs({
-        locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
-      });
       const arrayBuffer = await file.arrayBuffer();
       const db = new SQL.Database(new Uint8Array(arrayBuffer));
       return { db };
@@ -356,7 +356,7 @@
 
           // Iterate over each speaking chunk, extracting the sentences
           const speakingChunks = xmlDoc.querySelectorAll("p");
-          for (speakingChunk of speakingChunks) {
+          for (const speakingChunk of speakingChunks) {
             const speaker = speakingChunk.getAttribute('ttm:agent');
             const sentences = [...speakingChunk.querySelectorAll('span')]
               .filter(sp => sp.getAttribute('podcasts:unit') === 'sentence')
