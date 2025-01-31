@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drag and Drop File Processing</title>
+  <style>
+    .podcast {
+      overflow: hidden;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 15px 0;
+      background-color: white;
+      width: 800px;
+
+      cursor: pointer;
+
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+
+      transition: 0.3s ease;
+    }
+    .podcast:hover {
+      transform: scale(1.03);
+    }
+    .speaker {
+      background-color: #999;
+      padding: 3px;
+      display: inline-block;
+      margin: 3px 3px 3px 0;
+      border-radius: 5px;
+      user-select: none;
+    }
+    .title {
+      display: inline-block;
+      margin-bottom: 0px;
+      font-weight: bold;
+      font-size: 1.5em;
+    }
+    .author {
+      display: block;
+    }
+    .duration {
+      color: #666;
+      padding-left: 10px;
+    }
+    .date {
+      font-style: italic;
+    }
+    .info {
+      text-transform: uppercase;
+      color: #808080;
+      font-weight: bold;
+      font-size: small;
+    }
+    html, body {
+      height: 100%;
+      overscroll-behavior-y: none;
+    }
+    html {
+      background: linear-gradient(#c05bea, #7826b2) no-repeat #7826b2;
+      box-sizing: content-box;
+    }
+    body {
+      margin: 0px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .explanation {
+      width: 650px;
+      text-align: center;
+      background-color: white;
+      padding: 40px;
+      border-radius: 25px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+
+      transition: 0.3s ease;
+    }
+    body.top {
+      justify-content: initial;
+    }
+    .top .explanation {
+      margin-top: 10px;
+      padding: 20px 0;
+      border-radius: 10px;
+    }
+    .explanation h1 {
+      margin: 0;
+    }
+    .indicator {
+      background-color: black;
+      color: white;
+      padding: 3px;
+      display: inline-block;
+      width: 1em;
+      border-radius: 4px;
+      margin-right: 7px;
+    }
+    .explanation pre {
+      background-color: #272822;
+      color: white;
+      padding: 20px 0;
+      border-radius: 5px;
+    }
+    .explanation .note {
+      color: #8f8f8f;
+      font-size: 0.8em;
+      margin: 40px 0 -30px 0;
+    }
+    .highlight .explanation {
+      padding: 60px;
+      opacity: 0.9;
+    }
+    .description {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      margin-top: 25px;
+    }
+    #transcript {
+      position: fixed;
+      background-color: white;
+      margin: 30px;
+      height: calc(100% - 100px);
+      border-radius: 5px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+
+      display: none;
+    }
+    #transcript .content {
+      overflow: scroll;
+      height: 100%;
+    }
+    .xout {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.5em;
+      background-color: #e8e8e8;
+      display: block;
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
+      text-align: center;
+      border-radius: 18px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="explanation">
+    <h1>Apple Podcast Transcript Extractor</h1>
+    <p>
+      The Apple Podcasts app on iOS and MacOS doesn't allow you easily export or copy large 
+      portions of the transcript. However it's locally stored on MacOS if you download the
+      episode. This tool allows you to easily copy and extract them.
+    </p>
+    <div>
+      <div><span class="indicator">1</span>Download the episode locally.</div>
+      <div><span class="indicator">2</span>Open a <img src="./finder.png" alt="Finder Icon" style="height: 1em; margin-bottom: -3px;"> Finder window and select "Go" > "Go to Folder" from the menu (or type <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>) and enter the following:</div>
+      <pre><code>~/Library/Group Containers/243LU875E5.groups.com.apple.podcasts</code></pre>
+      <div><span class="indicator">3</span>Drag and drop all the contents of that folder anywhere on this window.</div>
+    </div>
+    <p class="note">
+      NOTE: All information is only locally processed and never leaves your computer.
+    </p>
+  </div>
+  <div id="podcasts">
+  </div>
+  <div id="transcript">
+    <span class="xout">X</span>
+    <div class="content"></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+  
+  <script>
+    const dropZone = document.body;
+    const podcasts = document.getElementById('podcasts');
+    
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('highlight');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('highlight');
+    });
+    
+    dropZone.addEventListener('drop', async (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('highlight');
+
+      document.body.classList.add('top');
+      document.querySelector('.explanation').innerHTML = '<h1>Apple Podcast Transcript Extractor</h1>';
+
+      // Clear the current podcast list
+      podcasts.innerHTML = '';
+
+      const items = event.dataTransfer.items;
+
+      // Extract the relevant info
+      const queue = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry();
+        if (entry) queue.push(traverseFileTree(entry));
+      }
+      const relevantFiles = {
+        'transcripts': {},
+        'podcastInfo': {},
+      };
+      const result = await Promise.all(queue);
+      for (const info of result) {
+        relevantFiles['transcripts'] = { ...relevantFiles['transcripts'], ...info['transcripts'] };
+        relevantFiles['podcastInfo'] = { ...relevantFiles['podcastInfo'], ...info['podcastInfo'] };
+      }
+
+      const keys = Object.keys(relevantFiles.transcripts);
+      const podcastInfo = relevantFiles.podcastInfo['db'].exec(
+        `SELECT
+          ZSTORETRACKID,
+          ZAUTHOR,
+          ZCLEANEDTITLE,
+          ZITUNESSUBTITLE,
+          ZDURATION,
+          ZFIRSTTIMEAVAILABLE
+        FROM ZMTEPISODE
+        WHERE ZSTORETRACKID IN (
+          ${keys.join(', ')}
+        );
+      `);
+      // All transcripts
+      const transcripts = {};
+      for (const pod of podcastInfo[0].values) {
+        transcripts[pod[0]] = {
+          'author': pod[1],
+          'title': pod[2],
+          'description': pod[3],
+          'duration': pod[4],
+          'time': pod[5] + 978307200, // Adjust for Jan 1st time which Apple uses
+        };
+      }
+      for (const podcastId in relevantFiles.transcripts) {
+        if (podcastId in transcripts) {
+          transcripts[podcastId]['transcripts'] = relevantFiles['transcripts'][podcastId];
+        } else {
+          transcripts[podcastId] = {
+            'author': 'Unknown',
+            'title': 'Unknown',
+            'description': '',
+            'duration': -1,
+            'time': -1,
+            'transcripts' : relevantFiles['transcripts'][podcastId]
+          };
+        }
+      }
+
+      // Iterate over it
+      for (const transcript of Object.values(transcripts)) {
+        const podcastDiv = document.createElement("div");
+        podcastDiv.className = "podcast";
+        let description = transcript.description;
+        if (description == '') {
+          description = transcript.transcripts.map(s => s.sentences).join("\n");
+        }
+        podcastDiv.innerHTML = `
+        <div class="info">${formatDate(transcript.time)} · ${formatTime(transcript.duration)}</div>
+        <div class="title">${transcript.title}</div>
+        <span class="author">${transcript.author}</span>
+        <div class="description">${description}</div>
+        `;
+
+        podcastDiv.onclick = () => openTranscriptPopup(transcript.transcripts);
+
+        podcasts.appendChild(podcastDiv);
+      }
+
+      console.log(transcripts);
+    });
+
+    async function traverseFileTree(entry) {
+      if (entry.isFile) {
+        return new Promise((resolve) => {
+          entry.file(async (file) => {
+            const info = { transcripts: {}, podcastInfo: {} };
+
+            if (file.name.endsWith('.ttml')) {
+              info.transcripts = await extractPodcastTranscripts(file);
+            } else if (file.name === 'MTLibrary.sqlite') {
+              info.podcastInfo = await extractPodcastInfo(file);
+            }
+            resolve(info);
+          });
+        });
+      } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        return new Promise((resolve) => {
+          const mainInfo = { transcripts: {}, podcastInfo: {} };
+          reader.readEntries(async (entries) => {
+            for (const subEntry of entries) {
+              const subInfo = await traverseFileTree(subEntry);
+              mainInfo['transcripts'] = { ...mainInfo['transcripts'], ...subInfo['transcripts'] };
+              mainInfo['podcastInfo'] = { ...mainInfo['podcastInfo'], ...subInfo['podcastInfo'] };
+            }
+            resolve(mainInfo);
+          });
+        });
+      } else {
+        return { transcripts: {}, podcastInfo: {} };
+      }
+    }
+
+    async function extractPodcastInfo(file) {
+      const SQL = await initSqlJs({
+        locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
+      });
+      const arrayBuffer = await file.arrayBuffer();
+      const db = new SQL.Database(new Uint8Array(arrayBuffer));
+      return { db };
+    }
+
+    async function extractPodcastTranscripts(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(reader.result, "application/xml");
+          const body = xmlDoc.querySelector("body");
+
+          const match = file.name.match(/(\d+)/);
+          const podcastId = match ? match[1] : null;
+
+          if (!body || !podcastId) return callback({});
+
+          const podcastInfo = [];
+
+          // Iterate over each speaking chunk, extracting the sentences
+          const speakingChunks = xmlDoc.querySelectorAll("p");
+          for (speakingChunk of speakingChunks) {
+            const speaker = speakingChunk.getAttribute('ttm:agent');
+            const sentences = [...speakingChunk.querySelectorAll('span')]
+              .filter(sp => sp.getAttribute('podcasts:unit') === 'sentence')
+              .map(sentence => [...sentence.querySelectorAll('span')].map(sp => sp.textContent).join(' '))
+              .join(' ');
+            podcastInfo.push({ speaker, sentences });
+          }
+
+          resolve({ [podcastId]: podcastInfo });
+        };
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    function formatTime(totalSeconds) {
+      if (totalSeconds == -1) {
+        return 'Unknown';
+      }
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      if (hours > 0) {
+        if (minutes != 0) {
+          return `${hours} HR ${minutes} MIN`;
+        } else {
+          return `${hours} HR`;
+        }
+      } else {
+        return `${minutes} MIN`;
+      }
+    }
+
+    function formatDate(unixTime) {
+      if (unixTime == -1) {
+        return 'Unknown';
+      }
+      let date = new Date(unixTime * 1000);
+      return date.toLocaleString('default', { month: 'long', year: 'numeric', day: 'numeric' });
+    }
+
+    const popup = document.querySelector('#transcript');
+
+    document.body.addEventListener('click', (e) => {
+      if (popup.style.display != 'none' && e.target === document.body) {
+        popup.style.display = 'none';
+      }
+    });
+
+    function openTranscriptPopup(transcripts) {
+      popup.style.display = 'block';
+      const content = document.querySelector('#transcript .content');
+      content.innerHTML = transcripts.map(s => `<p>${s.sentences}</p>`).join('');
+      content.scrollTop = 0;
+    }
+
+    document.querySelector('.xout').onclick = () => {
+      popup.style.display = 'none';
+    }
+  </script>
+</body>
+</html>
