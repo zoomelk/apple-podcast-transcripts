@@ -1,3 +1,19 @@
+<!--
+  Custom Apple Podcast Transcript Viewer  
+  Version: 4.0.0 – Edited by Melanie Kennedy (@zoomelk)  
+  https://github.com/zoomelk/apple-podcast-transcripts  
+
+  Based on original project by Alex Beals (@dado3212)  
+  https://github.com/dado3212/apple-podcast-transcripts  
+
+  Key Modifications:
+  – Added multi-selection and ZIP download functionality
+  – Included metadata export options
+  – Added recursive folder traversal for large directories
+
+  Last updated: 2025-07-14
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -168,6 +184,10 @@
 
     .github img {
       width: 20px;
+    }
+
+    .github.fork {
+      bottom: 45px;
     }
 
     /*------------- CARD CONTENT --------------*/
@@ -427,7 +447,8 @@
       border-bottom: 1px solid #ddd;
     }
 
-    .card-select-checkbox, .card-selection-label {
+    .card-select-checkbox,
+    .card-selection-label {
       user-select: none;
     }
   </style>
@@ -465,18 +486,23 @@
   <div class="explanation">
     <h1>Apple Podcast Transcript Viewer</h1>
     <p>
-      The Apple Podcasts app on iOS and MacOS doesn't allow you easily export or copy large portions of the transcript.
-      However, it's locally stored on MacOS if you view the transcript in the app. This tool allows you to easily copy
-      and extract them.
+      The Apple Podcasts app on iOS and MacOS doesn't allow you easily export or copy large portions of the transcript. However, it's locally stored on MacOS if you view the transcript in the app. This tool allows you to easily copy and extract them.
     </p>
     <div>
-      <div><span class="indicator">1</span>Go to the episode in the <a href="podcasts://">MacOS Podcasts app</a> and
-        click where it says 'Transcript' (or the triple dots ··· > 'View Transcript').</div>
-      <div><span class="indicator">2</span>Open a <img src="./images/finder.png" alt="Finder Icon"
-          style="height: 1.2em; margin-bottom: -3px;"> Finder window and select 'Go' > 'Go to Folder' from the menu (or
-        type <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>) and enter the following:</div>
+      <div>
+        <span class="indicator">1</span>
+        Go to the episode in the <a href="podcasts://">MacOS Podcasts app</a> and click where it says 'Transcript' (or the triple dots ··· > 'View Transcript').
+      </div>
+      <div>
+        <span class="indicator">2</span>
+        Open a <img src="./images/finder.png" alt="Finder Icon" style="height: 1.2em; margin-bottom: -3px;">
+        Finder window and select 'Go' > 'Go to Folder' from the menu (or type <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>) and enter the following:
+      </div>
       <pre><code>~/Library/Group Containers/243LU875E5.groups.com.apple.podcasts</code></pre>
-      <div><span class="indicator">3</span>Drag and drop all the contents of that folder anywhere on this window.</div>
+      <div>
+        <span class="indicator">3</span>
+        Drag and drop all the contents of that folder anywhere on this window.
+      </div>
     </div>
     <p class="note">
       NOTE: All files are locally processed in your browser and never leave your computer.
@@ -494,6 +520,10 @@
   <a class="github" href="https://github.com/dado3212/apple-podcast-transcripts" target="_blank">
     <img src="images/github.svg" />
   </a>
+  <a class="github fork" href="https://github.com/zoomelk/apple-podcast-transcripts" target="_blank">
+    <img src="images/github.svg" />
+  </a>
+
 
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-M15SP790QM"></script>
@@ -508,43 +538,43 @@
     let allTranscripts = {};
     // Variable to keep track of the last clicked checkbox for shift+click functionality
     let lastCheckedCheckbox = null;
-  
+
     // Handle mobile apps
     if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
       document.querySelector('.explanation').innerHTML = `
         <h1>Apple Podcast Transcript Viewer</h1>
         <p>This only supports MacOS, so try visiting this website from your laptop browser.</p>`;
     }
-  
+
     const dropZone = document.body;
     const podcasts = document.getElementById('podcasts');
-  
+
     // Initialize SQL.js so that if you go offline the webworker is set up
     const SQL = await initSqlJs({
       locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
     });
-  
+
     dropZone.addEventListener('dragover', (event) => {
       event.preventDefault();
       dropZone.classList.add('highlight');
     });
-  
+
     dropZone.addEventListener('dragleave', () => {
       dropZone.classList.remove('highlight');
     });
-  
+
     dropZone.addEventListener('drop', async (event) => {
       event.preventDefault();
       dropZone.classList.remove('highlight');
-  
+
       document.body.classList.add('top');
       document.querySelector('.explanation').innerHTML = '<h1>Apple Podcast Transcript Extractor</h1>';
-  
+
       document.getElementById("control-panel").style.display = "flex";
-  
+
       // Clear the current podcast list
       podcasts.innerHTML = '';
-  
+
       const items = event.dataTransfer.items;
       const queue = [];
       for (let i = 0; i < items.length; i++) {
@@ -560,21 +590,32 @@
         relevantFiles.transcripts = { ...relevantFiles.transcripts, ...info.transcripts };
         relevantFiles.podcastInfo = { ...relevantFiles.podcastInfo, ...info.podcastInfo };
       }
-  
+
       const keys = Object.keys(relevantFiles.transcripts);
-      const podcastInfo = relevantFiles.podcastInfo['db'].exec(
-        `SELECT
-            ZSTORETRACKID,
-            ZAUTHOR,
-            ZCLEANEDTITLE,
-            ZITUNESSUBTITLE,
-            ZDURATION,
-            ZFIRSTTIMEAVAILABLE
-          FROM ZMTEPISODE
-          WHERE ZSTORETRACKID IN (${keys.join(', ')});
-        `
-      );
-  
+      let podcastInfo = { 0: { values: [] } };
+
+      // Metadata Extraction + Fallback
+      if (!relevantFiles.podcastInfo['db']) {
+        console.error("Database not found in podcastInfo. Skipping metadata extraction.");
+      } else {
+        try {
+          podcastInfo = relevantFiles.podcastInfo['db'].exec(
+            `SELECT
+        ZSTORETRACKID,
+        ZAUTHOR,
+        ZCLEANEDTITLE,
+        ZITUNESSUBTITLE,
+        ZDURATION,
+        ZFIRSTTIMEAVAILABLE
+      FROM ZMTEPISODE
+      WHERE ZSTORETRACKID IN (${keys.join(', ')});`
+          );
+        } catch (err) {
+          console.error("Failed to execute SQL query:", err);
+        }
+      }
+
+
       // Build transcripts object
       const transcripts = {};
       for (const pod of podcastInfo[0].values) {
@@ -600,83 +641,83 @@
           };
         }
       }
-  
+
       // Store transcripts globally for later download
       allTranscripts = transcripts;
-  
+
       // Iterate over transcripts and create episode cards with updated structure
       for (const [podcastId, transcript] of Object.entries(transcripts)) {
         const podcastDiv = document.createElement("div");
         podcastDiv.className = "podcast";
-  
+
         // Sidebar: Select Checkbox Container
         const selectContainer = document.createElement("div");
         selectContainer.className = "card-selection";
-  
+
         const selectCheckbox = document.createElement("input");
         selectCheckbox.type = "checkbox";
         selectCheckbox.className = "card-select-checkbox";
         selectCheckbox.id = `select-${podcastId}`;
         selectCheckbox.dataset.podcastId = podcastId;
-  
+
         const selectLabel = document.createElement("label");
         selectLabel.setAttribute("for", `select-${podcastId}`);
         selectLabel.className = "card-selection-label";
-  
+
         selectContainer.appendChild(selectCheckbox);
         selectContainer.appendChild(selectLabel);
-  
+
         // Main Content
         const contentDiv = document.createElement("div");
         contentDiv.className = "card-content";
-  
+
         // Header: Include Data Checkbox
         const headerDiv = document.createElement("div");
         headerDiv.className = "card-header";
-  
+
         const includeLabel = document.createElement("label");
         includeLabel.className = "include-data-label";
-  
+
         const includeCheckbox = document.createElement("input");
         includeCheckbox.type = "checkbox";
         includeCheckbox.className = "include-data";
         includeCheckbox.dataset.podcastId = podcastId;
-  
+
         includeLabel.appendChild(includeCheckbox);
         includeLabel.appendChild(document.createTextNode(" Include Data"));
         headerDiv.appendChild(includeLabel);
-  
+
         // Info Section
         const infoDiv = document.createElement("div");
         infoDiv.classList.add("info");
         infoDiv.textContent = `${formatDate(transcript.time)} · ${formatTime(transcript.duration)}`;
-  
+
         // Title
         const titleDiv = document.createElement("div");
         titleDiv.classList.add("title");
         titleDiv.textContent = transcript.title;
-  
+
         // Author
         const authorSpan = document.createElement("span");
         authorSpan.classList.add("author");
         authorSpan.textContent = transcript.author;
-  
+
         // Description
         const descriptionDiv = document.createElement("div");
         descriptionDiv.classList.add("description");
         descriptionDiv.textContent = transcript.description || transcript.transcripts.map(s => s.sentences).join("\n");
-  
+
         // Append elements
         contentDiv.appendChild(headerDiv);
         contentDiv.appendChild(infoDiv);
         contentDiv.appendChild(titleDiv);
         contentDiv.appendChild(authorSpan);
         contentDiv.appendChild(descriptionDiv);
-  
+
         // Append Select Container and Content to Podcast Div
         podcastDiv.appendChild(selectContainer);
         podcastDiv.appendChild(contentDiv);
-  
+
         // Clicking the card (but not the checkboxes) opens the transcript popup
         podcastDiv.addEventListener("click", (event) => {
           // Prevent clicks on checkboxes OR labels from triggering the pop-up
@@ -686,9 +727,9 @@
           }
           openTranscriptPopup(transcript.transcripts);
         });
-  
+
         // Attach click event for Shift+Click multi-select functionality
-        selectCheckbox.addEventListener("click", function(e) {
+        selectCheckbox.addEventListener("click", function (e) {
           if (e.shiftKey && lastCheckedCheckbox) {
             let checkboxes = Array.from(document.querySelectorAll('.card-select-checkbox'));
             let start = checkboxes.indexOf(lastCheckedCheckbox);
@@ -701,18 +742,18 @@
           }
           lastCheckedCheckbox = this;
         });
-  
+
         // When the individual include-data checkbox changes, update master-include state
         includeCheckbox.addEventListener("change", updateMasterInclude);
-  
+
         podcasts.appendChild(podcastDiv);
       }
-  
+
       // After creating cards, update master checkbox states
       updateMasterSelect();
       updateMasterInclude();
     });
-  
+
     async function traverseFileTree(entry) {
       if (entry.isFile) {
         return new Promise((resolve) => {
@@ -730,26 +771,39 @@
         const reader = entry.createReader();
         return new Promise((resolve) => {
           const mainInfo = { transcripts: {}, podcastInfo: {} };
-          reader.readEntries(async (entries) => {
-            for (const subEntry of entries) {
-              const subInfo = await traverseFileTree(subEntry);
-              mainInfo.transcripts = { ...mainInfo.transcripts, ...subInfo.transcripts };
-              mainInfo.podcastInfo = { ...mainInfo.podcastInfo, ...subInfo.podcastInfo };
-            }
-            resolve(mainInfo);
-          });
+
+          // Batch-read directory entries to bypass readEntries() 100-file limit
+          function readBatch() {
+            reader.readEntries(async (batch) => {
+              if (batch.length === 0) {
+                // no more entries
+                return resolve(mainInfo);
+              }
+
+              for (const subEntry of batch) {
+                const subInfo = await traverseFileTree(subEntry);
+                mainInfo.transcripts = { ...mainInfo.transcripts, ...subInfo.transcripts };
+                mainInfo.podcastInfo = { ...mainInfo.podcastInfo, ...subInfo.podcastInfo };
+              }
+
+              // keep reading until batch.length === 0
+              readBatch();
+            });
+          }
+
+          readBatch();
         });
       } else {
         return { transcripts: {}, podcastInfo: {} };
       }
     }
-  
+
     async function extractPodcastInfo(file) {
       const arrayBuffer = await file.arrayBuffer();
       const db = new SQL.Database(new Uint8Array(arrayBuffer));
       return { db };
     }
-  
+
     async function extractPodcastTranscripts(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -775,46 +829,46 @@
         reader.readAsText(file);
       });
     }
-  
+
     function formatTime(totalSeconds) {
       if (totalSeconds == -1) return 'Unknown';
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       return hours > 0 ? (minutes !== 0 ? `${hours} HR ${minutes} MIN` : `${hours} HR`) : `${minutes} MIN`;
     }
-  
+
     function formatDate(unixTime) {
       if (unixTime == -1) return 'Unknown';
       let date = new Date(unixTime * 1000);
       return date.toLocaleString('default', { month: 'long', day: 'numeric', year: 'numeric' });
     }
-  
+
     const content = document.querySelector('#transcript .content');
     document.querySelector('#transcript').addEventListener('click', (e) => {
       if (document.body.classList.contains('popupOpen') && !content.contains(e.target)) {
         document.body.classList.remove('popupOpen');
       }
     });
-  
+
     function openTranscriptPopup(transcripts) {
       document.body.classList.add('popupOpen');
       content.innerHTML = transcripts.map(s => `<p>${s.sentences}</p>`).join('');
       content.scrollTop = 0;
     }
-  
+
     document.querySelector('.xout').onclick = () => {
       document.body.classList.remove('popupOpen');
     };
-  
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && document.body.classList.contains('popupOpen')) {
         document.body.classList.remove('popupOpen');
       }
     });
-  
+
     // Utility function to sanitize filenames
     const sanitize = str => str.replace(/[\\\/:*?"<>|]/g, '').trim();
-  
+
     // Function to create and download ZIP, prompting for save location if possible
     async function downloadZip(selectedTranscripts) {
       const zip = new JSZip();
@@ -824,12 +878,12 @@
         String(today.getDate()).padStart(2, '0');
       const folderName = "Podcast_Transcripts_" + dateString;
       const folder = zip.folder(folderName);
-  
+
       // Function to clean up excessive newlines in the description
       function cleanDescription(text) {
         return text.replace(/\n{3,}/g, '\n\n'); // Reduces 3+ consecutive newlines to exactly 2
       }
-  
+
       // For each selected transcript, determine if its individual include-data checkbox is checked
       for (const podcastId of selectedTranscripts) {
         const transcript = allTranscripts[podcastId];
@@ -852,11 +906,11 @@
         const fileName = `${sanitize(podcastName)}_${sanitize(episodeTitle)}.txt`;
         folder.file(fileName, textContent);
       }
-  
+
       // Generate the ZIP blob
       const blob = await zip.generateAsync({ type: "blob" });
       const zipName = folderName + ".zip";
-  
+
       // Use the File System Access API if available
       if (window.showSaveFilePicker) {
         try {
@@ -886,14 +940,14 @@
         URL.revokeObjectURL(url);
       }
     }
-  
+
     // Master checkbox for episode selection
     document.getElementById("master-select").addEventListener("change", function () {
       const state = this.checked;
       document.querySelectorAll(".card-select-checkbox").forEach(cb => cb.checked = state);
       updateMasterSelect();
     });
-  
+
     function updateMasterSelect() {
       const checkboxes = document.querySelectorAll(".card-select-checkbox");
       const total = checkboxes.length;
@@ -910,14 +964,14 @@
         master.indeterminate = true;
       }
     }
-  
+
     // Master checkbox for include data
     document.getElementById("master-include").addEventListener("change", function () {
       const state = this.checked;
       document.querySelectorAll(".include-data").forEach(cb => cb.checked = state);
       updateMasterInclude();
     });
-  
+
     function updateMasterInclude() {
       const checkboxes = document.querySelectorAll(".include-data");
       const total = checkboxes.length;
@@ -934,7 +988,7 @@
         master.indeterminate = true;
       }
     }
-  
+
     // Download Button Event Listeners
     document.getElementById("download-selected").addEventListener("click", () => {
       const selected = Array.from(document.querySelectorAll(".card-select-checkbox:checked"))
@@ -945,7 +999,7 @@
       }
       downloadZip(selected);
     });
-  
+
     document.getElementById("download-all").addEventListener("click", () => {
       const allIds = Object.keys(allTranscripts);
       if (allIds.length === 0) {
@@ -955,7 +1009,7 @@
       downloadZip(allIds);
     });
   </script>
-  
+
   <script>
     function updateBodyHeight() {
       document.body.style.minHeight = document.documentElement.scrollHeight + "px";
