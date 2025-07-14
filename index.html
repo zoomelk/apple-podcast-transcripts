@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apple Podcast Transcript Viewer</title>
   <link rel="icon" type="image/png" href="/projects/podcasts/favicons/favicon-96x96.png" sizes="96x96" />
@@ -12,78 +13,40 @@
   <meta name="apple-mobile-web-app-title" content="Apple Podcast Transcript Viewer" />
   <link rel="manifest" href="/projects/podcasts/favicons/site.webmanifest" />
 
-	<meta property="og:title" content="Apple Podcast Transcript Viewer">
+  <meta property="og:title" content="Apple Podcast Transcript Viewer">
   <meta property="og:type" content="website">
-	<meta property="og:url" content="https://alexbeals.com/projects/podcasts/">
-	<meta property="og:site_name" content="Apple Podcast Transcript Viewer">
-	<meta property="og:image" content="/projects/podcasts/images/og.png">
-	<meta property="og:description" content="View and download Apple Podcast transcripts.">
+  <meta property="og:url" content="https://alexbeals.com/projects/podcasts/">
+  <meta property="og:site_name" content="Apple Podcast Transcript Viewer">
+  <meta property="og:image" content="/projects/podcasts/images/og.png">
+  <meta property="og:description" content="View and download Apple Podcast transcripts.">
+
+  <!-- JSZip library for ZIP functionality -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
-    .podcast {
-      overflow: hidden;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 15px 10px;
-      background-color: white;
-      max-width: 800px;
-
-      cursor: pointer;
-
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-
-      transition: 0.3s ease;
-    }
-    .podcast:hover {
-      transform: scale(1.03);
-    }
-    .speaker {
-      background-color: #999;
-      padding: 3px;
-      display: inline-block;
-      margin: 3px 3px 3px 0;
-      border-radius: 5px;
-      user-select: none;
-    }
-    .title {
-      display: inline-block;
-      margin-bottom: 0px;
-      font-weight: bold;
-      font-size: 1.5em;
-    }
-    .author {
-      display: block;
-    }
-    .duration {
-      color: #666;
-      padding-left: 10px;
-    }
-    .date {
-      font-style: italic;
-    }
-    .info {
-      text-transform: uppercase;
-      color: #808080;
-      font-weight: bold;
-      font-size: small;
-    }
-    html, body {
-      height: 100%;
+    html,
+    body {
+      width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
       overscroll-behavior-y: none;
     }
-    html {
-      background: linear-gradient(#c05bea, #7826b2) no-repeat #7826b2;
-      box-sizing: content-box;
-    }
-    body {
-      margin: 0px;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 
+    body {
+      background: linear-gradient(rgba(191, 91, 234, 0.3), rgba(120, 38, 178, 0.3)) no-repeat rgba(120, 38, 178, 0.3);
+      box-sizing: content-box;
+      background-size: 100% auto;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: space-evenly;
       align-items: center;
+      background-attachment: fixed;
+      background-position: top left;
     }
+
     .explanation {
       max-width: 650px;
       margin: 5px;
@@ -92,23 +55,28 @@
       padding: 40px;
       border-radius: 25px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-
       transition: 0.3s ease;
     }
+
     body.top {
       justify-content: initial;
     }
+
     .top .explanation {
       margin-top: 10px;
       padding: 20px;
       border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     }
+
     .explanation h1 {
       margin: 0;
     }
+
     .explanation a {
       color: #9e42cf;
     }
+
     .indicator {
       background-color: black;
       color: white;
@@ -118,44 +86,41 @@
       border-radius: 4px;
       margin-right: 7px;
     }
+
     .explanation pre {
       background-color: #272822;
       color: white;
       padding: 20px 0;
       border-radius: 5px;
     }
+
     .explanation .note {
       color: #8f8f8f;
       font-size: 0.8em;
       margin: 40px 0 -30px 0;
     }
+
     .highlight .explanation {
       padding: 60px;
       opacity: 0.9;
     }
-    .description {
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
 
-      margin-top: 25px;
-    }
     body.popupOpen {
       user-select: none;
     }
+
+    body.popupOpen #transcript {
+      display: block;
+    }
+
     #transcript {
       position: fixed;
       height: 100%;
       background-color: rgba(0, 0, 0, 0.6);
       z-index: 1;
-
       display: none;
     }
-    body.popupOpen #transcript {
-      display: block;
-    }
+
     #transcript .content {
       background: white;
       margin: 30px;
@@ -166,6 +131,7 @@
       overflow: scroll;
       user-select: text;
     }
+
     .xout {
       position: absolute;
       top: 40px;
@@ -181,6 +147,7 @@
       cursor: pointer;
       user-select: none;
     }
+
     .github {
       width: 20px;
       position: fixed;
@@ -194,24 +161,320 @@
       border-radius: 20px;
       transition: 0.3s ease;
     }
+
     .github:hover {
       opacity: 1;
     }
+
     .github img {
       width: 20px;
     }
+
+    /*------------- CARD CONTENT --------------*/
+    .title {
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 1.3em;
+    }
+
+    .author {
+      display: block;
+      font-size: 1em;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .duration {
+      color: #666;
+      padding-left: 10px;
+    }
+
+    .date {
+      font-style: italic;
+    }
+
+    .info {
+      text-transform: uppercase;
+      color: #808080;
+      font-weight: bold;
+      font-size: small;
+      margin-bottom: 5px;
+    }
+
+    .description {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 1em;
+      color: #444;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+
+    /*------------- PODCAST CARDS --------------*/
+
+    .podcast {
+      position: relative;
+      box-sizing: border-box;
+      overflow: hidden;
+      border-radius: 10px;
+      margin: 15px 0;
+      max-width: 800px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      outline: 1px solid #ddd;
+      transition: 0.3s ease-in-out;
+      display: flex;
+      align-items: stretch;
+      padding: 0;
+    }
+
+    .podcast:hover {
+      transform: scale(1.02);
+    }
+
+    .card-content {
+      flex-grow: 1;
+      padding: 15px;
+      background-color: white
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .card-selection {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 10px 15px;
+      background-color: #f5f5f5;
+      transition: background-color 0.3s ease-in-out;
+      flex: 0 0 40px;
+      border-right: 1px solid #ddd;
+    }
+
+    .card-selection-label {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .include-data-label {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.85em;
+      gap: 5px;
+      font-weight: 500;
+      color: #fff;
+      background-color: #9e42cf;
+      padding: 5px 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      justify-content: flex-start;
+      flex-direction: row-reverse;
+    }
+
+    .podcast:has(.include-data:checked) .include-data-label {
+      background-color: rgb(120, 38, 178);
+    }
+
+    /* Change sidebar background when the card is selected */
+    .podcast:has(.card-select-checkbox:checked) .card-selection {
+      background-color: #007bff;
+    }
+
+    /* Style the podcast card when its checkbox is checked */
+    .podcast:has(.card-select-checkbox:checked) {
+      outline: 2px solid #007bff;
+      box-shadow: 0 2px 12px rgba(0, 123, 255, 0.5);
+      box-sizing: border-box;
+    }
+
+    /*------------- CHECKBOX COLORS --------------*/
+
+    .include-data {
+      margin: 0;
+      transform: scale(1.1);
+      margin-right: 5px;
+      accent-color: #f5f5f5;
+    }
+
+    .card-select-checkbox {
+      transform: scale(1.5);
+      cursor: pointer;
+      margin-bottom: 8px;
+      accent-color: #f5f5f5;
+    }
+
+    /*------------- CONTROL PANEL (STICKY MENU) --------------*/
+    #control-panel label {
+      display: flex;
+      align-items: center;
+      font-size: 1em;
+      font-weight: bold;
+      background: none;
+      padding: 5px 12px;
+      accent-color: #228dff;
+    }
+
+    #control-panel {
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: #222;
+      color: #fff;
+      display: none;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      gap: 1vw;
+      padding: 20px;
+      margin-bottom: 15px;
+      width: 100%;
+      box-sizing: border-box;
+      z-index: 9000;
+    }
+
+    #control-panel button {
+      font-size: 1em;
+      font-weight: bold;
+      padding: 12px 18px;
+      margin: 0 12px;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #control-panel button:hover {
+      background: #004cff;
+    }
+
+    #control-panel input[type="checkbox"] {
+      margin-right: 5px;
+      transform: scale(1.2);
+      vertical-align: middle;
+    }
+
+    .info-icon {
+      transform: scale(0.9);
+      font-style: normal;
+      border-radius: 50%;
+      padding: 1px 8px 0px 8px;
+      margin-left: 5px;
+      cursor: pointer;
+      position: relative;
+      outline: 1px solid #fff;
+      outline-offset: -1px;
+    }
+
+    .info-icon:hover+.tooltip {
+      display: block;
+    }
+
+    .tooltip {
+      display: none;
+      position: absolute;
+      background: #444;
+      color: #fff;
+      max-width: 260px;
+      top: 30px;
+      transform: translate(20%, 12%);
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+      font-size: 0.85em;
+      font-weight: normal;
+      padding: 12px;
+      border-radius: 5px;
+      line-height: 1.3em;
+      pointer-events: none;
+    }
+
+    .tooltip p {
+      margin: 0 0 0px;
+    }
+
+    .tooltip ul {
+      padding-left: 25px;
+      font-weight: 600;
+      margin: .5em 0;
+    }
+
+    .tooltip li {
+      margin-bottom: 2px;
+    }
+
+    .selection-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .card-select-checkbox, .card-selection-label {
+      user-select: none;
+    }
   </style>
 </head>
+
 <body>
+  <!-- Sticky Control Panel -->
+  <div id="control-panel">
+    <!-- Master checkbox for episode selection -->
+    <label>
+      <input type="checkbox" id="master-select" />
+      Select All Episodes
+    </label>
+    <!-- Master checkbox for include data -->
+    <label>
+      <input type="checkbox" id="master-include" />
+      Include Episode Data
+      <span class="info-icon">𝒊</span>
+      <div class="tooltip">
+        <p>When selected, each transcript file will begin with the episode metadata:</p>
+        <ul>
+          <li>Podcast Name</li>
+          <li>Episode Title</li>
+          <li>Episode Date</li>
+          <li>Duration</li>
+          <li>Episode Description / Show Notes</li>
+        </ul>
+        <p>Followed by a separator and then the transcript text.</p>
+      </div>
+    </label>
+    <button id="download-all">Download All</button>
+    <button id="download-selected">Download Selected</button>
+  </div>
+
   <div class="explanation">
     <h1>Apple Podcast Transcript Viewer</h1>
     <p>
-      The Apple Podcasts app on iOS and MacOS doesn't allow you easily export or copy large 
-      portions of the transcript. However it's locally stored on MacOS if you view the transcript in the app. This tool allows you to easily copy and extract them.
+      The Apple Podcasts app on iOS and MacOS doesn't allow you easily export or copy large portions of the transcript.
+      However, it's locally stored on MacOS if you view the transcript in the app. This tool allows you to easily copy
+      and extract them.
     </p>
     <div>
-      <div><span class="indicator">1</span>Go to the episode in the <a href="podcasts://">MacOS Podcasts app</a> and click where it says 'Transcript' (or the triple dots ··· > 'View Transcript').</div>
-      <div><span class="indicator">2</span>Open a <img src="./images/finder.png" alt="Finder Icon" style="height: 1.2em; margin-bottom: -3px;"> Finder window and select 'Go' > 'Go to Folder' from the menu (or type <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>) and enter the following:</div>
+      <div><span class="indicator">1</span>Go to the episode in the <a href="podcasts://">MacOS Podcasts app</a> and
+        click where it says 'Transcript' (or the triple dots ··· > 'View Transcript').</div>
+      <div><span class="indicator">2</span>Open a <img src="./images/finder.png" alt="Finder Icon"
+          style="height: 1.2em; margin-bottom: -3px;"> Finder window and select 'Go' > 'Go to Folder' from the menu (or
+        type <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>) and enter the following:</div>
       <pre><code>~/Library/Group Containers/243LU875E5.groups.com.apple.podcasts</code></pre>
       <div><span class="indicator">3</span>Drag and drop all the contents of that folder anywhere on this window.</div>
     </div>
@@ -219,144 +482,242 @@
       NOTE: All files are locally processed in your browser and never leave your computer.
     </p>
   </div>
+
   <div id="podcasts">
   </div>
+
   <div id="transcript">
     <span class="xout">X</span>
     <div class="content"></div>
   </div>
-  <a class="github" href="https://github.com/dado3212/apple-podcast-transcripts" target="_blank"><img src="images/github.svg"/></a>
+
+  <a class="github" href="https://github.com/dado3212/apple-podcast-transcripts" target="_blank">
+    <img src="images/github.svg" />
+  </a>
+
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-M15SP790QM"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
-
     gtag('config', 'G-M15SP790QM');
   </script>
   <script type="module">
+    // Global variable to store all transcripts
+    let allTranscripts = {};
+    // Variable to keep track of the last clicked checkbox for shift+click functionality
+    let lastCheckedCheckbox = null;
+  
     // Handle mobile apps
     if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
       document.querySelector('.explanation').innerHTML = `
         <h1>Apple Podcast Transcript Viewer</h1>
-        <p>
-          This only supports MacOS, so try visiting this website from your laptop browser.
-        </p>`;
+        <p>This only supports MacOS, so try visiting this website from your laptop browser.</p>`;
     }
-
+  
     const dropZone = document.body;
     const podcasts = document.getElementById('podcasts');
-
-    // Initialize it now so that if you go offline the webworker is set up
+  
+    // Initialize SQL.js so that if you go offline the webworker is set up
     const SQL = await initSqlJs({
       locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
     });
-    
+  
     dropZone.addEventListener('dragover', (event) => {
       event.preventDefault();
       dropZone.classList.add('highlight');
     });
-    
+  
     dropZone.addEventListener('dragleave', () => {
       dropZone.classList.remove('highlight');
     });
-    
+  
     dropZone.addEventListener('drop', async (event) => {
       event.preventDefault();
       dropZone.classList.remove('highlight');
-
+  
       document.body.classList.add('top');
       document.querySelector('.explanation').innerHTML = '<h1>Apple Podcast Transcript Extractor</h1>';
-
+  
+      document.getElementById("control-panel").style.display = "flex";
+  
       // Clear the current podcast list
       podcasts.innerHTML = '';
-
+  
       const items = event.dataTransfer.items;
-
-      // Extract the relevant info
       const queue = [];
       for (let i = 0; i < items.length; i++) {
         const entry = items[i].webkitGetAsEntry();
         if (entry) queue.push(traverseFileTree(entry));
       }
       const relevantFiles = {
-        'transcripts': {},
-        'podcastInfo': {},
+        transcripts: {},
+        podcastInfo: {},
       };
       const result = await Promise.all(queue);
       for (const info of result) {
-        relevantFiles['transcripts'] = { ...relevantFiles['transcripts'], ...info['transcripts'] };
-        relevantFiles['podcastInfo'] = { ...relevantFiles['podcastInfo'], ...info['podcastInfo'] };
+        relevantFiles.transcripts = { ...relevantFiles.transcripts, ...info.transcripts };
+        relevantFiles.podcastInfo = { ...relevantFiles.podcastInfo, ...info.podcastInfo };
       }
-
+  
       const keys = Object.keys(relevantFiles.transcripts);
       const podcastInfo = relevantFiles.podcastInfo['db'].exec(
         `SELECT
-          ZSTORETRACKID,
-          ZAUTHOR,
-          ZCLEANEDTITLE,
-          ZITUNESSUBTITLE,
-          ZDURATION,
-          ZFIRSTTIMEAVAILABLE
-        FROM ZMTEPISODE
-        WHERE ZSTORETRACKID IN (
-          ${keys.join(', ')}
-        );
-      `);
-      // All transcripts
+            ZSTORETRACKID,
+            ZAUTHOR,
+            ZCLEANEDTITLE,
+            ZITUNESSUBTITLE,
+            ZDURATION,
+            ZFIRSTTIMEAVAILABLE
+          FROM ZMTEPISODE
+          WHERE ZSTORETRACKID IN (${keys.join(', ')});
+        `
+      );
+  
+      // Build transcripts object
       const transcripts = {};
       for (const pod of podcastInfo[0].values) {
         transcripts[pod[0]] = {
-          'author': pod[1],
-          'title': pod[2],
-          'description': pod[3],
-          'duration': pod[4],
-          'time': pod[5] + 978307200, // Adjust for Jan 1st time which Apple uses
+          author: pod[1],
+          title: pod[2],
+          description: pod[3],
+          duration: pod[4],
+          time: pod[5] + 978307200, // Adjust for Jan 1st time which Apple uses
         };
       }
       for (const podcastId in relevantFiles.transcripts) {
         if (podcastId in transcripts) {
-          transcripts[podcastId]['transcripts'] = relevantFiles['transcripts'][podcastId];
+          transcripts[podcastId].transcripts = relevantFiles.transcripts[podcastId];
         } else {
           transcripts[podcastId] = {
-            'author': 'Unknown',
-            'title': 'Unknown',
-            'description': '',
-            'duration': -1,
-            'time': -1,
-            'transcripts' : relevantFiles['transcripts'][podcastId]
+            author: 'Unknown',
+            title: 'Unknown',
+            description: '',
+            duration: -1,
+            time: -1,
+            transcripts: relevantFiles.transcripts[podcastId]
           };
         }
       }
-
-      // Iterate over it
-      for (const transcript of Object.values(transcripts)) {
+  
+      // Store transcripts globally for later download
+      allTranscripts = transcripts;
+  
+      // Iterate over transcripts and create episode cards with updated structure
+      for (const [podcastId, transcript] of Object.entries(transcripts)) {
         const podcastDiv = document.createElement("div");
         podcastDiv.className = "podcast";
-        let description = transcript.description;
-        if (description == '') {
-          description = transcript.transcripts.map(s => s.sentences).join("\n");
-        }
-        podcastDiv.innerHTML = `
-        <div class="info">${formatDate(transcript.time)} · ${formatTime(transcript.duration)}</div>
-        <div class="title">${transcript.title}</div>
-        <span class="author">${transcript.author}</span>
-        <div class="description">${description}</div>
-        `;
-
-        podcastDiv.onclick = () => openTranscriptPopup(transcript.transcripts);
-
+  
+        // Sidebar: Select Checkbox Container
+        const selectContainer = document.createElement("div");
+        selectContainer.className = "card-selection";
+  
+        const selectCheckbox = document.createElement("input");
+        selectCheckbox.type = "checkbox";
+        selectCheckbox.className = "card-select-checkbox";
+        selectCheckbox.id = `select-${podcastId}`;
+        selectCheckbox.dataset.podcastId = podcastId;
+  
+        const selectLabel = document.createElement("label");
+        selectLabel.setAttribute("for", `select-${podcastId}`);
+        selectLabel.className = "card-selection-label";
+  
+        selectContainer.appendChild(selectCheckbox);
+        selectContainer.appendChild(selectLabel);
+  
+        // Main Content
+        const contentDiv = document.createElement("div");
+        contentDiv.className = "card-content";
+  
+        // Header: Include Data Checkbox
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "card-header";
+  
+        const includeLabel = document.createElement("label");
+        includeLabel.className = "include-data-label";
+  
+        const includeCheckbox = document.createElement("input");
+        includeCheckbox.type = "checkbox";
+        includeCheckbox.className = "include-data";
+        includeCheckbox.dataset.podcastId = podcastId;
+  
+        includeLabel.appendChild(includeCheckbox);
+        includeLabel.appendChild(document.createTextNode(" Include Data"));
+        headerDiv.appendChild(includeLabel);
+  
+        // Info Section
+        const infoDiv = document.createElement("div");
+        infoDiv.classList.add("info");
+        infoDiv.textContent = `${formatDate(transcript.time)} · ${formatTime(transcript.duration)}`;
+  
+        // Title
+        const titleDiv = document.createElement("div");
+        titleDiv.classList.add("title");
+        titleDiv.textContent = transcript.title;
+  
+        // Author
+        const authorSpan = document.createElement("span");
+        authorSpan.classList.add("author");
+        authorSpan.textContent = transcript.author;
+  
+        // Description
+        const descriptionDiv = document.createElement("div");
+        descriptionDiv.classList.add("description");
+        descriptionDiv.textContent = transcript.description || transcript.transcripts.map(s => s.sentences).join("\n");
+  
+        // Append elements
+        contentDiv.appendChild(headerDiv);
+        contentDiv.appendChild(infoDiv);
+        contentDiv.appendChild(titleDiv);
+        contentDiv.appendChild(authorSpan);
+        contentDiv.appendChild(descriptionDiv);
+  
+        // Append Select Container and Content to Podcast Div
+        podcastDiv.appendChild(selectContainer);
+        podcastDiv.appendChild(contentDiv);
+  
+        // Clicking the card (but not the checkboxes) opens the transcript popup
+        podcastDiv.addEventListener("click", (event) => {
+          // Prevent clicks on checkboxes OR labels from triggering the pop-up
+          if (event.target.tagName.toLowerCase() === "input" || event.target.closest("label")) {
+            event.stopPropagation();
+            return;
+          }
+          openTranscriptPopup(transcript.transcripts);
+        });
+  
+        // Attach click event for Shift+Click multi-select functionality
+        selectCheckbox.addEventListener("click", function(e) {
+          if (e.shiftKey && lastCheckedCheckbox) {
+            let checkboxes = Array.from(document.querySelectorAll('.card-select-checkbox'));
+            let start = checkboxes.indexOf(lastCheckedCheckbox);
+            let end = checkboxes.indexOf(this);
+            let [min, max] = [Math.min(start, end), Math.max(start, end)];
+            checkboxes.slice(min, max + 1).forEach(cb => {
+              cb.checked = this.checked;
+            });
+            updateMasterSelect();
+          }
+          lastCheckedCheckbox = this;
+        });
+  
+        // When the individual include-data checkbox changes, update master-include state
+        includeCheckbox.addEventListener("change", updateMasterInclude);
+  
         podcasts.appendChild(podcastDiv);
       }
+  
+      // After creating cards, update master checkbox states
+      updateMasterSelect();
+      updateMasterInclude();
     });
-
+  
     async function traverseFileTree(entry) {
       if (entry.isFile) {
         return new Promise((resolve) => {
           entry.file(async (file) => {
             const info = { transcripts: {}, podcastInfo: {} };
-
             if (file.name.endsWith('.ttml')) {
               info.transcripts = await extractPodcastTranscripts(file);
             } else if (file.name === 'MTLibrary.sqlite') {
@@ -372,8 +733,8 @@
           reader.readEntries(async (entries) => {
             for (const subEntry of entries) {
               const subInfo = await traverseFileTree(subEntry);
-              mainInfo['transcripts'] = { ...mainInfo['transcripts'], ...subInfo['transcripts'] };
-              mainInfo['podcastInfo'] = { ...mainInfo['podcastInfo'], ...subInfo['podcastInfo'] };
+              mainInfo.transcripts = { ...mainInfo.transcripts, ...subInfo.transcripts };
+              mainInfo.podcastInfo = { ...mainInfo.podcastInfo, ...subInfo.podcastInfo };
             }
             resolve(mainInfo);
           });
@@ -382,13 +743,13 @@
         return { transcripts: {}, podcastInfo: {} };
       }
     }
-
+  
     async function extractPodcastInfo(file) {
       const arrayBuffer = await file.arrayBuffer();
       const db = new SQL.Database(new Uint8Array(arrayBuffer));
       return { db };
     }
-
+  
     async function extractPodcastTranscripts(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -396,80 +757,220 @@
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(reader.result, "application/xml");
           const body = xmlDoc.querySelector("body");
-
           const match = file.name.match(/(\d+)/);
           const podcastId = match ? match[1] : null;
-
-          if (!body || !podcastId) return callback({});
-
+          if (!body || !podcastId) return;
           const podcastInfo = [];
-
-          // Iterate over each speaking chunk, extracting the sentences
           const speakingChunks = xmlDoc.querySelectorAll("p");
           for (const speakingChunk of speakingChunks) {
-            const speaker = speakingChunk.getAttribute('ttm:agent');
             const sentences = [...speakingChunk.querySelectorAll('span')]
               .filter(sp => sp.getAttribute('podcasts:unit') === 'sentence')
               .map(sentence => [...sentence.querySelectorAll('span')].map(sp => sp.textContent).join(' '))
               .join(' ');
-            podcastInfo.push({ speaker, sentences });
+            podcastInfo.push({ sentences });
           }
-
           resolve({ [podcastId]: podcastInfo });
         };
         reader.onerror = reject;
         reader.readAsText(file);
       });
     }
-
+  
     function formatTime(totalSeconds) {
-      if (totalSeconds == -1) {
-        return 'Unknown';
-      }
+      if (totalSeconds == -1) return 'Unknown';
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
-      if (hours > 0) {
-        if (minutes != 0) {
-          return `${hours} HR ${minutes} MIN`;
-        } else {
-          return `${hours} HR`;
-        }
-      } else {
-        return `${minutes} MIN`;
-      }
+      return hours > 0 ? (minutes !== 0 ? `${hours} HR ${minutes} MIN` : `${hours} HR`) : `${minutes} MIN`;
     }
-
+  
     function formatDate(unixTime) {
-      if (unixTime == -1) {
-        return 'Unknown';
-      }
+      if (unixTime == -1) return 'Unknown';
       let date = new Date(unixTime * 1000);
-      return date.toLocaleString('default', { month: 'long', year: 'numeric', day: 'numeric' });
+      return date.toLocaleString('default', { month: 'long', day: 'numeric', year: 'numeric' });
     }
-
+  
     const content = document.querySelector('#transcript .content');
-
     document.querySelector('#transcript').addEventListener('click', (e) => {
       if (document.body.classList.contains('popupOpen') && !content.contains(e.target)) {
         document.body.classList.remove('popupOpen');
       }
     });
-
+  
     function openTranscriptPopup(transcripts) {
       document.body.classList.add('popupOpen');
       content.innerHTML = transcripts.map(s => `<p>${s.sentences}</p>`).join('');
       content.scrollTop = 0;
     }
-
+  
     document.querySelector('.xout').onclick = () => {
       document.body.classList.remove('popupOpen');
-    }
-
+    };
+  
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && document.body.classList.contains('popupOpen')) {
         document.body.classList.remove('popupOpen');
       }
     });
+  
+    // Utility function to sanitize filenames
+    const sanitize = str => str.replace(/[\\\/:*?"<>|]/g, '').trim();
+  
+    // Function to create and download ZIP, prompting for save location if possible
+    async function downloadZip(selectedTranscripts) {
+      const zip = new JSZip();
+      const today = new Date();
+      const dateString = today.getFullYear() + "-" +
+        String(today.getMonth() + 1).padStart(2, '0') + "-" +
+        String(today.getDate()).padStart(2, '0');
+      const folderName = "Podcast_Transcripts_" + dateString;
+      const folder = zip.folder(folderName);
+  
+      // Function to clean up excessive newlines in the description
+      function cleanDescription(text) {
+        return text.replace(/\n{3,}/g, '\n\n'); // Reduces 3+ consecutive newlines to exactly 2
+      }
+  
+      // For each selected transcript, determine if its individual include-data checkbox is checked
+      for (const podcastId of selectedTranscripts) {
+        const transcript = allTranscripts[podcastId];
+        if (!transcript) continue;
+        let textContent = transcript.transcripts.map(s => s.sentences).join("\n\n");
+        const includeCheckbox = document.querySelector(`.include-data[data-podcast-id="${podcastId}"]`);
+        const includeMetadataForEpisode = includeCheckbox ? includeCheckbox.checked : false;
+        if (includeMetadataForEpisode) {
+          const header =
+            `PODCAST NAME:\t${transcript.author || "UNKNOWN"}\n----------------------------------\n` +
+            `EPISODE TITLE:\t${transcript.title || "UNKNOWN"}\n----------------------------------\n` +
+            `EPISODE DATE:\t${formatDate(transcript.time)}\n----------------------------------\n` +
+            `DURATION:\t${formatTime(transcript.duration)}\n----------------------------------\n` +
+            `EPISODE DESCRIPTION:\n\n${cleanDescription(transcript.description || "UNKNOWN")}\n\n\n` +
+            `----------------------------------\nTRANSCRIPT:\n\n`;
+          textContent = header + textContent;
+        }
+        const podcastName = transcript.author || "Unknown";
+        const episodeTitle = transcript.title || "Unknown";
+        const fileName = `${sanitize(podcastName)}_${sanitize(episodeTitle)}.txt`;
+        folder.file(fileName, textContent);
+      }
+  
+      // Generate the ZIP blob
+      const blob = await zip.generateAsync({ type: "blob" });
+      const zipName = folderName + ".zip";
+  
+      // Use the File System Access API if available
+      if (window.showSaveFilePicker) {
+        try {
+          const options = {
+            suggestedName: zipName,
+            types: [{
+              description: 'ZIP files',
+              accept: { 'application/zip': ['.zip'] }
+            }]
+          };
+          const handle = await window.showSaveFilePicker(options);
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } catch (err) {
+          console.error("Save canceled or failed", err);
+        }
+      } else {
+        // Fallback: trigger download via an anchor element
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = zipName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+  
+    // Master checkbox for episode selection
+    document.getElementById("master-select").addEventListener("change", function () {
+      const state = this.checked;
+      document.querySelectorAll(".card-select-checkbox").forEach(cb => cb.checked = state);
+      updateMasterSelect();
+    });
+  
+    function updateMasterSelect() {
+      const checkboxes = document.querySelectorAll(".card-select-checkbox");
+      const total = checkboxes.length;
+      const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+      const master = document.getElementById("master-select");
+      if (checked === 0) {
+        master.checked = false;
+        master.indeterminate = false;
+      } else if (checked === total) {
+        master.checked = true;
+        master.indeterminate = false;
+      } else {
+        master.checked = false;
+        master.indeterminate = true;
+      }
+    }
+  
+    // Master checkbox for include data
+    document.getElementById("master-include").addEventListener("change", function () {
+      const state = this.checked;
+      document.querySelectorAll(".include-data").forEach(cb => cb.checked = state);
+      updateMasterInclude();
+    });
+  
+    function updateMasterInclude() {
+      const checkboxes = document.querySelectorAll(".include-data");
+      const total = checkboxes.length;
+      const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+      const master = document.getElementById("master-include");
+      if (checked === 0) {
+        master.checked = false;
+        master.indeterminate = false;
+      } else if (checked === total) {
+        master.checked = true;
+        master.indeterminate = false;
+      } else {
+        master.checked = false;
+        master.indeterminate = true;
+      }
+    }
+  
+    // Download Button Event Listeners
+    document.getElementById("download-selected").addEventListener("click", () => {
+      const selected = Array.from(document.querySelectorAll(".card-select-checkbox:checked"))
+        .map(cb => cb.dataset.podcastId);
+      if (selected.length === 0) {
+        alert("No episodes selected for download.");
+        return;
+      }
+      downloadZip(selected);
+    });
+  
+    document.getElementById("download-all").addEventListener("click", () => {
+      const allIds = Object.keys(allTranscripts);
+      if (allIds.length === 0) {
+        alert("No episodes available for download.");
+        return;
+      }
+      downloadZip(allIds);
+    });
+  </script>
+  
+  <script>
+    function updateBodyHeight() {
+      document.body.style.minHeight = document.documentElement.scrollHeight + "px";
+    }
+
+    // Run once when the page loads
+    updateBodyHeight();
+
+    // Watch for changes in the document and update height
+    const observer = new MutationObserver(updateBodyHeight);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Also update height on window resize
+    window.addEventListener("resize", updateBodyHeight);
   </script>
 </body>
+
 </html>
