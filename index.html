@@ -1,17 +1,17 @@
 <!--
   Custom Apple Podcast Transcript Viewer  
-  Version: 4.0.0 – Edited by Melanie Kennedy (@zoomelk)  
+  Version: 4.0.1 – Edited by Melanie Kennedy (@zoomelk)  
   https://github.com/zoomelk/apple-podcast-transcripts  
 
   Based on original project by Alex Beals (@dado3212)  
   https://github.com/dado3212/apple-podcast-transcripts  
 
-  Key Modifications:
+  Key Modifications From Original:
   – Added multi-selection and ZIP download functionality
   – Included metadata export options
   – Added recursive folder traversal for large directories
 
-  Last updated: 2025-07-14
+  Last updated: 2025-07-19
 -->
 
 <!DOCTYPE html>
@@ -43,7 +43,8 @@
     html,
     body {
       width: 100%;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: scroll;
       margin: 0;
       padding: 0;
       overscroll-behavior-y: none;
@@ -57,7 +58,7 @@
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex;
       flex-direction: column;
-      justify-content: space-evenly;
+      justify-content: center;
       align-items: center;
       background-attachment: fixed;
       background-position: top left;
@@ -128,40 +129,58 @@
     body.popupOpen #transcript {
       display: block;
     }
-
+    
     #transcript {
       position: fixed;
+      min-width: 100%;
       height: 100%;
+      align-content: flex-end;
       background-color: rgba(0, 0, 0, 0.6);
       z-index: 1;
       display: none;
+      justify-content: center;
     }
 
     #transcript .content {
       background: white;
-      margin: 30px;
-      height: calc(100% - 100px);
-      border-radius: 5px;
-      padding: 20px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-      overflow: scroll;
+      height: 100%;
+      padding: 0px 35px;
+      scrollbar-color: lightgray transparent;
+      overflow-y: scroll;
       user-select: text;
+      --fade-amount: 1%;
+      mask: linear-gradient(to bottom, transparent, black var(--fade-amount), black calc(100% - var(--fade-amount)), transparent);
+    }
+
+    .transcript-wrapper {
+      position: relative;
+      display: flex;
+      justify-self: center;
+      max-width: 900px;
+      margin: 100px 50px 30px 50px;
+      height: calc(100% - 190px);
+      padding: 23px 5px;
+      background: white;
+      border-radius: 5px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     }
 
     .xout {
       position: absolute;
-      top: 40px;
-      right: 40px;
-      font-size: 1.5em;
+      top: -60px;
+      right: 0px;
+      font-size: 1em;
       background-color: #e8e8e8;
       display: block;
-      width: 36px;
-      height: 36px;
-      line-height: 36px;
+      --x: 35px;
+      width: var(--x);
+      height: var(--x);
+      line-height: var(--x);
       text-align: center;
       border-radius: 18px;
       cursor: pointer;
       user-select: none;
+      z-index: 2;
     }
 
     .github {
@@ -513,8 +532,11 @@
   </div>
 
   <div id="transcript">
-    <span class="xout">X</span>
-    <div class="content"></div>
+    <div class="transcript-wrapper">
+      <span class="xout">X</span>
+      <div class="content">
+      </div>
+    </div>
   </div>
 
   <a class="github" href="https://github.com/dado3212/apple-podcast-transcripts" target="_blank">
@@ -1010,21 +1032,6 @@
     });
   </script>
 
-  <script>
-    function updateBodyHeight() {
-      document.body.style.minHeight = document.documentElement.scrollHeight + "px";
-    }
-
-    // Run once when the page loads
-    updateBodyHeight();
-
-    // Watch for changes in the document and update height
-    const observer = new MutationObserver(updateBodyHeight);
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // Also update height on window resize
-    window.addEventListener("resize", updateBodyHeight);
-  </script>
 </body>
 
 </html>
