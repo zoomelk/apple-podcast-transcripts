@@ -1,6 +1,6 @@
 <!--
   Custom Apple Podcast Transcript Viewer  
-  Version: 4.0.1 – Edited by Melanie Kennedy (@zoomelk)  
+  Version: 4.1.0  – Edited by Melanie Kennedy (@zoomelk)  
   https://github.com/zoomelk/apple-podcast-transcripts  
 
   Based on original project by Alex Beals (@dado3212)  
@@ -9,7 +9,7 @@
   Key Modifications From Original:
   – Added multi-selection and ZIP download functionality
   – Included metadata export options
-  – Added recursive folder traversal for large directories
+  – Pulls in Podcast Name
 
   Last updated: 2025-07-19
 -->
@@ -105,7 +105,7 @@
     }
 
     .explanation pre {
-      background-color: #272822;
+      background-color: #222;
       color: white;
       padding: 20px 0;
       border-radius: 5px;
@@ -129,7 +129,7 @@
     body.popupOpen #transcript {
       display: block;
     }
-    
+
     #transcript {
       position: fixed;
       min-width: 100%;
@@ -210,17 +210,29 @@
     }
 
     /*------------- CARD CONTENT --------------*/
+
+    /*Epidode Title */
     .title {
       margin-bottom: 5px;
       font-weight: bold;
       font-size: 1.3em;
     }
 
+    /* Podcast Show */
+    .show {
+      display: block;
+      font-size: 1.3em;
+      font-weight: 500;
+      color: #222;
+      margin-bottom: 5px;
+    }
+
+    /* Author / Creator */
     .author {
       display: block;
       font-size: 1em;
       font-weight: 500;
-      color: #333;
+      color: #222;
       margin-bottom: 10px;
     }
 
@@ -233,12 +245,15 @@
       font-style: italic;
     }
 
+    /*Moved info inside .card-header*/
     .info {
       text-transform: uppercase;
       color: #808080;
       font-weight: bold;
       font-size: small;
-      margin-bottom: 5px;
+      margin-right: auto;
+      display: flex;
+      align-items: flex-end;
     }
 
     .description {
@@ -284,6 +299,7 @@
     .card-header {
       display: flex;
       justify-content: flex-end;
+      margin-bottom: 6px;
     }
 
     .card-selection {
@@ -623,30 +639,33 @@
         try {
           podcastInfo = relevantFiles.podcastInfo['db'].exec(
             `SELECT
-        ZSTORETRACKID,
-        ZAUTHOR,
-        ZCLEANEDTITLE,
-        ZITUNESSUBTITLE,
-        ZDURATION,
-        ZFIRSTTIMEAVAILABLE
-      FROM ZMTEPISODE
-      WHERE ZSTORETRACKID IN (${keys.join(', ')});`
+        ZMTEPISODE.ZSTORETRACKID,
+        ZMTPODCAST.ZTITLE,
+        ZMTEPISODE.ZAUTHOR,
+        ZMTEPISODE.ZCLEANEDTITLE,
+        ZMTEPISODE.ZITUNESSUBTITLE,
+        ZMTEPISODE.ZDURATION,
+        ZMTEPISODE.ZFIRSTTIMEAVAILABLE
+    FROM ZMTEPISODE
+    LEFT JOIN ZMTPODCAST
+           ON ZMTEPISODE.ZPODCAST = ZMTPODCAST.Z_PK
+    WHERE ZMTEPISODE.ZSTORETRACKID IN (${keys.join(', ')});`
           );
         } catch (err) {
           console.error("Failed to execute SQL query:", err);
         }
       }
 
-
       // Build transcripts object
       const transcripts = {};
       for (const pod of podcastInfo[0].values) {
         transcripts[pod[0]] = {
-          author: pod[1],
-          title: pod[2],
-          description: pod[3],
-          duration: pod[4],
-          time: pod[5] + 978307200, // Adjust for Jan 1st time which Apple uses
+          podcast: pod[1],
+          author: pod[2],
+          title: pod[3],
+          description: pod[4],
+          duration: pod[5],
+          time: pod[6] + 978307200, // Adjust for Jan 1st time which Apple uses
         };
       }
       for (const podcastId in relevantFiles.transcripts) {
@@ -654,6 +673,7 @@
           transcripts[podcastId].transcripts = relevantFiles.transcripts[podcastId];
         } else {
           transcripts[podcastId] = {
+            podcast: 'Unknown',
             author: 'Unknown',
             title: 'Unknown',
             description: '',
@@ -705,21 +725,30 @@
         includeCheckbox.className = "include-data";
         includeCheckbox.dataset.podcastId = podcastId;
 
-        includeLabel.appendChild(includeCheckbox);
-        includeLabel.appendChild(document.createTextNode(" Include Data"));
-        headerDiv.appendChild(includeLabel);
-
         // Info Section
         const infoDiv = document.createElement("div");
         infoDiv.classList.add("info");
         infoDiv.textContent = `${formatDate(transcript.time)} · ${formatTime(transcript.duration)}`;
 
-        // Title
+        // .card-header section
+        includeLabel.appendChild(includeCheckbox);
+        includeLabel.appendChild(document.createTextNode(" Include Data"));
+        headerDiv.appendChild(infoDiv);
+        headerDiv.appendChild(includeLabel);
+
+
+        // Episode Title
         const titleDiv = document.createElement("div");
         titleDiv.classList.add("title");
         titleDiv.textContent = transcript.title;
 
-        // Author
+        // Podcast Show
+        const showSpan = document.createElement("span");
+        showSpan.classList.add("show");
+        showSpan.textContent = transcript.podcast;
+        //ALT authorSpan.textContent = `${transcript.podcast} · ${transcript.author}`;
+
+        // Author / Creator
         const authorSpan = document.createElement("span");
         authorSpan.classList.add("author");
         authorSpan.textContent = transcript.author;
@@ -731,8 +760,8 @@
 
         // Append elements
         contentDiv.appendChild(headerDiv);
-        contentDiv.appendChild(infoDiv);
         contentDiv.appendChild(titleDiv);
+        contentDiv.appendChild(showSpan);
         contentDiv.appendChild(authorSpan);
         contentDiv.appendChild(descriptionDiv);
 
@@ -914,8 +943,10 @@
         const includeCheckbox = document.querySelector(`.include-data[data-podcast-id="${podcastId}"]`);
         const includeMetadataForEpisode = includeCheckbox ? includeCheckbox.checked : false;
         if (includeMetadataForEpisode) {
+          //Metadata Export block order + labels 
           const header =
-            `PODCAST NAME:\t${transcript.author || "UNKNOWN"}\n----------------------------------\n` +
+            `PODCAST:\t${transcript.podcast || "UNKNOWN"}\n----------------------------------\n` +
+            `CREATOR:\t${transcript.author || "UNKNOWN"}\n----------------------------------\n` +
             `EPISODE TITLE:\t${transcript.title || "UNKNOWN"}\n----------------------------------\n` +
             `EPISODE DATE:\t${formatDate(transcript.time)}\n----------------------------------\n` +
             `DURATION:\t${formatTime(transcript.duration)}\n----------------------------------\n` +
@@ -923,7 +954,7 @@
             `----------------------------------\nTRANSCRIPT:\n\n`;
           textContent = header + textContent;
         }
-        const podcastName = transcript.author || "Unknown";
+        const podcastName = transcript.podcast || "Unknown";
         const episodeTitle = transcript.title || "Unknown";
         const fileName = `${sanitize(podcastName)}_${sanitize(episodeTitle)}.txt`;
         folder.file(fileName, textContent);
